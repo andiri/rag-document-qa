@@ -1,4 +1,7 @@
-import pdfParse from 'pdf-parse';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker source
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 export const parseDocument = async (file) => {
   const fileType = file.name.split('.').pop().toLowerCase();
@@ -19,13 +22,24 @@ export const parseDocument = async (file) => {
 
 const parsePDF = async (file) => {
   const arrayBuffer = await file.arrayBuffer();
-  const data = await pdfParse(Buffer.from(arrayBuffer));
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  
+  let fullText = '';
+  
+  // Extract text from all pages
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+  
   return {
-    text: data.text,
+    text: fullText,
     metadata: {
       fileName: file.name,
       fileType: 'pdf',
-      pages: data.numpages,
+      pages: pdf.numPages,
       uploadedAt: new Date().toISOString()
     }
   };
