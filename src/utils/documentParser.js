@@ -1,7 +1,10 @@
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+// Set worker source to match installed version
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 export const parseDocument = async (file) => {
   const fileType = file.name.split('.').pop().toLowerCase();

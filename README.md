@@ -23,7 +23,7 @@ A powerful document search and question-answering web application built with Rea
 - **Frontend**: React 19 + Vite
 - **Styling**: Tailwind CSS
 - **AI/ML**: OpenAI GPT-4 & text-embedding-3-small
-- **Document Processing**: pdf-parse
+- **Document Processing**: pdfjs-dist (browser-compatible)
 - **HTTP Client**: Axios
 - **Deployment**: Vercel
 
