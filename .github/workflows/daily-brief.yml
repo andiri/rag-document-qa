@@ -30,6 +30,7 @@ jobs:
         run: npm ci
 
       - name: Generate brief + send email
+        timeout-minutes: 8
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}

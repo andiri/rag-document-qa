@@ -11,7 +11,7 @@ import OpenAI from 'openai';
  * @param {string} [opts.source] 'rss' | 'pdf' (프롬프트 문구 조정용)
  */
 export async function summarize(promptText, { apiKey, model = 'gpt-4o-mini', source = 'rss' } = {}) {
-  const openai = new OpenAI({ apiKey });
+  const openai = new OpenAI({ apiKey, timeout: 60000, maxRetries: 2 });
 
   const sourceNote =
     source === 'pdf'
