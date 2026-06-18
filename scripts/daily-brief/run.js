@@ -4,10 +4,12 @@
  *
  *   node scripts/daily-brief/run.js                # RSS 수집 → 요약 → JSON 기록 + 이메일
  *   node scripts/daily-brief/run.js --no-email     # 메일 발송 생략(웹용 JSON 만)
- *   node scripts/daily-brief/run.js --pdf 지면.pdf  # 경로 C1: 내 지면 PDF 요약
+ *   node scripts/daily-brief/run.js --pdf 지면.pdf  # 경로 C1: 로컬 지면 PDF 요약
+ *   node scripts/daily-brief/run.js --from-email   # 경로 C1 자동화: 받은편지함의 지면 PDF 요약(없으면 RSS)
  *   node scripts/daily-brief/run.js --dry-run      # 외부 호출 없이 샘플로 출력/포맷 미리보기
  *
- * 환경변수: OPENAI_API_KEY, OPENAI_MODEL(선택), GMAIL_USER, GMAIL_APP_PASSWORD, MAIL_TO
+ * 환경변수: ANTHROPIC_API_KEY, ANTHROPIC_MODEL(선택), GMAIL_USER, GMAIL_APP_PASSWORD, MAIL_TO,
+ *           PDF_FROM_EMAIL(=1이면 지면 PDF 자동수집), PDF_EMAIL_FROM/PDF_EMAIL_SUBJECT(선택 필터)
  */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -20,6 +22,7 @@ import { summarize } from './lib/summarize.js';
 import { renderMarkdown, renderEmailHtml } from './lib/render.js';
 import { sendEmail } from './lib/sendEmail.js';
 import { extractPdfText } from './lib/ingestPdf.js';
+import { fetchLatestPdfFromEmail } from './lib/fetchPdfFromEmail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
@@ -53,16 +56,37 @@ async function buildBrief() {
     return { brief: sample, errors: [] };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY 환경변수가 필요합니다.');
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY 환경변수가 필요합니다.');
+  const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';
 
-  if (pdfPath) {
+  // 지면 PDF 소스 결정: 명시적 --pdf, 또는 받은편지함 자동수집(경로 C1 자동화)
+  let resolvedPdf = pdfPath;
+  if (!resolvedPdf && (has('--from-email') || process.env.PDF_FROM_EMAIL === '1')) {
+    console.log('▶ 받은편지함에서 지면 PDF 검색…');
+    const found = await fetchLatestPdfFromEmail({
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+      sinceHours: Number(process.env.PDF_EMAIL_SINCE_HOURS || 18),
+      fromFilter: process.env.PDF_EMAIL_FROM || undefined,
+      subjectFilter: process.env.PDF_EMAIL_SUBJECT || undefined,
+    });
+    if (found) {
+      console.log(`▶ 지면 PDF 발견: "${found.subject}" → C1 요약`);
+      resolvedPdf = found.path;
+    } else {
+      console.warn('⚠️ 최근 지면 PDF 메일을 못 찾음 → RSS(경로 B)로 대체');
+    }
+  }
+
+  if (resolvedPdf) {
     // 경로 C1: 지면 PDF 요약
-    if (!existsSync(pdfPath)) throw new Error(`PDF 를 찾을 수 없습니다: ${pdfPath}`);
-    const text = await extractPdfText(pdfPath);
+    if (!existsSync(resolvedPdf)) throw new Error(`PDF 를 찾을 수 없습니다: ${resolvedPdf}`);
+    const text = await extractPdfText(resolvedPdf);
     if (!text.trim()) throw new Error('PDF 에서 텍스트를 추출하지 못했습니다(스캔본일 수 있음).');
-    const brief = await summarize(text.slice(0, 60000), { apiKey, model, source: 'pdf' });
+    console.log('▶ Claude 요약 생성 중(지면)…');
+    const brief = await summarize(text.slice(0, 120000), { apiKey, model, source: 'pdf' });
+    console.log('▶ 요약 완료');
     return { brief, errors: [] };
   }
 
@@ -80,7 +104,7 @@ async function buildBrief() {
     );
   }
   const promptText = feedsToPromptText({ categories });
-  console.log('▶ OpenAI 요약 생성 중…');
+  console.log('▶ Claude 요약 생성 중…');
   const brief = await summarize(promptText, { apiKey, model, source: 'rss' });
   console.log('▶ 요약 완료');
   return { brief, errors };

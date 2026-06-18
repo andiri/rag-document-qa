@@ -20,6 +20,7 @@ export function renderMarkdown(brief) {
   }
   (brief.sections || []).forEach((s) => {
     lines.push(`\n## ${s.category}`);
+    if (s.summary) lines.push(`_${s.summary}_`);
     (s.items || []).forEach((it) => {
       lines.push(`- **${it.title}**${it.insight ? ` — ${it.insight}` : ''}`);
     });
@@ -46,9 +47,12 @@ export function renderEmailHtml(brief) {
             }</li>`
         )
         .join('');
+      const summary = s.summary
+        ? `<p style="margin:4px 0 6px;color:#444;font-size:14px;">${esc(s.summary)}</p>`
+        : '';
       return `<h3 style="margin:18px 0 6px;color:#0b5;border-left:4px solid #0b5;padding-left:8px;">${esc(
         s.category
-      )}</h3><ul style="margin:0;padding-left:20px;">${items}</ul>`;
+      )}</h3>${summary}<ul style="margin:0;padding-left:20px;">${items}</ul>`;
     })
     .join('');
 

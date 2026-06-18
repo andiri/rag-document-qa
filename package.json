@@ -14,8 +14,11 @@
     "brief:pdf": "node scripts/daily-brief/run.js --pdf"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.105.0",
     "axios": "^1.13.2",
     "dotenv": "^17.4.2",
+    "imapflow": "^1.4.1",
+    "mailparser": "^3.9.10",
     "nodemailer": "^9.0.1",
     "openai": "^6.9.1",
     "pdfjs-dist": "^5.4.394",
