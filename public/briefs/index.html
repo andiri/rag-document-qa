@@ -50,7 +50,8 @@
           const items = (s.items || []).map(
             (it) => `<li><b>${esc(it.title)}</b>${it.insight ? ` <span class="insight">— ${esc(it.insight)}</span>` : ''}</li>`
           ).join('');
-          return `<h2>${esc(s.category)}</h2><ul>${items}</ul>`;
+          const summary = s.summary ? `<p class="insight" style="margin:4px 0 6px;">${esc(s.summary)}</p>` : '';
+          return `<h2>${esc(s.category)}</h2>${summary}<ul>${items}</ul>`;
         }).join('');
         return `
           <div class="date">${esc(dateLabel(b.meta?.generatedAt || Date.now()))}</div>
