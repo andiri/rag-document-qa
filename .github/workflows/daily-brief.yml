@@ -1,0 +1,51 @@
+name: 오늘의 한경 브리핑
+
+on:
+  schedule:
+    # 매일 07:00 KST = 22:00 UTC (전날). cron 은 UTC 기준.
+    - cron: "0 22 * * *"
+  workflow_dispatch: # 수동 실행 버튼
+
+permissions:
+  contents: write # 생성된 브리핑 JSON 을 repo 에 커밋
+
+concurrency:
+  group: daily-brief
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Generate brief + send email
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+        run: node scripts/daily-brief/run.js
+
+      - name: Commit brief to repo (for web view)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/briefs/
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 생략"
+          else
+            git commit -m "chore: 오늘의 한경 브리핑 업데이트 ($(TZ=Asia/Seoul date +%F))"
+            git push
+          fi
