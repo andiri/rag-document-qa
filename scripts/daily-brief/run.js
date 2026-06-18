@@ -60,8 +60,9 @@ async function buildBrief() {
   const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';
 
   // 지면 PDF 소스 결정: 명시적 --pdf(로컬), 또는 받은편지함 자동수집(경로 C1 자동화)
+  const wantEmail = !has('--rss') && (has('--from-email') || process.env.PDF_FROM_EMAIL === '1');
   let pdfList = pdfPath ? [pdfPath] : [];
-  if (pdfList.length === 0 && (has('--from-email') || process.env.PDF_FROM_EMAIL === '1')) {
+  if (pdfList.length === 0 && wantEmail) {
     console.log('▶ 받은편지함에서 지면 PDF 검색…');
     const found = await fetchPdfsFromEmail({
       user: process.env.GMAIL_USER,
