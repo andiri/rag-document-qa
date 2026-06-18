@@ -142,7 +142,12 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('❌ 실패:', err.message);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    // RSS keep-alive 소켓/SMTP 연결 등 열린 핸들로 이벤트 루프가 안 비워지는 것을 방지
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('❌ 실패:', err.message);
+    process.exit(1);
+  });
