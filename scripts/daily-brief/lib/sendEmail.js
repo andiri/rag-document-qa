@@ -32,5 +32,6 @@ export async function sendEmail({ subject, html, text }) {
     html,
   });
 
+  transporter.close(); // SMTP 연결 정리(프로세스가 매달리지 않도록)
   return { messageId: info.messageId, accepted: info.accepted };
 }
