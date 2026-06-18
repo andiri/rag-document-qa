@@ -18,10 +18,9 @@ import { fileURLToPath } from 'node:url';
 import 'dotenv/config';
 
 import { fetchFeeds, feedsToPromptText } from './lib/fetchFeeds.js';
-import { summarize } from './lib/summarize.js';
+import { summarize, summarizePdfs } from './lib/summarize.js';
 import { renderMarkdown, renderEmailHtml } from './lib/render.js';
 import { sendEmail } from './lib/sendEmail.js';
-import { extractPdfText } from './lib/ingestPdf.js';
 import { fetchPdfsFromEmail } from './lib/fetchPdfFromEmail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -80,20 +79,12 @@ async function buildBrief() {
   }
 
   if (pdfList.length > 0) {
-    // 경로 C1: 지면 PDF(들) 텍스트 추출 → 합쳐서 요약
-    const parts = [];
+    // 경로 C1: 지면 PDF(들)을 Claude에 직접 첨부해 시각적으로 요약(스캔 이미지 지면 대응)
     for (const p of pdfList) {
       if (!existsSync(p)) throw new Error(`PDF 를 찾을 수 없습니다: ${p}`);
-      const text = await extractPdfText(p);
-      if (text.trim()) parts.push(text);
     }
-    if (parts.length === 0) throw new Error('PDF 에서 텍스트를 추출하지 못했습니다(스캔본일 수 있음).');
-    console.log(`▶ Claude 요약 생성 중(지면 ${parts.length}건)…`);
-    const brief = await summarize(parts.join('\n\n===== 다음 지면 =====\n\n').slice(0, 160000), {
-      apiKey,
-      model,
-      source: 'pdf',
-    });
+    console.log(`▶ Claude 요약 생성 중(지면 PDF ${pdfList.length}건, 직접 첨부)…`);
+    const brief = await summarizePdfs(pdfList, { apiKey, model });
     console.log('▶ 요약 완료');
     return { brief, errors: [] };
   }
