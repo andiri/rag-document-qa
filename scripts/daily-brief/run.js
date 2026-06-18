@@ -22,7 +22,7 @@ import { summarize } from './lib/summarize.js';
 import { renderMarkdown, renderEmailHtml } from './lib/render.js';
 import { sendEmail } from './lib/sendEmail.js';
 import { extractPdfText } from './lib/ingestPdf.js';
-import { fetchLatestPdfFromEmail } from './lib/fetchPdfFromEmail.js';
+import { fetchPdfsFromEmail } from './lib/fetchPdfFromEmail.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
@@ -60,32 +60,40 @@ async function buildBrief() {
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY 환경변수가 필요합니다.');
   const model = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8';
 
-  // 지면 PDF 소스 결정: 명시적 --pdf, 또는 받은편지함 자동수집(경로 C1 자동화)
-  let resolvedPdf = pdfPath;
-  if (!resolvedPdf && (has('--from-email') || process.env.PDF_FROM_EMAIL === '1')) {
+  // 지면 PDF 소스 결정: 명시적 --pdf(로컬), 또는 받은편지함 자동수집(경로 C1 자동화)
+  let pdfList = pdfPath ? [pdfPath] : [];
+  if (pdfList.length === 0 && (has('--from-email') || process.env.PDF_FROM_EMAIL === '1')) {
     console.log('▶ 받은편지함에서 지면 PDF 검색…');
-    const found = await fetchLatestPdfFromEmail({
+    const found = await fetchPdfsFromEmail({
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
       sinceHours: Number(process.env.PDF_EMAIL_SINCE_HOURS || 18),
       fromFilter: process.env.PDF_EMAIL_FROM || undefined,
       subjectFilter: process.env.PDF_EMAIL_SUBJECT || undefined,
     });
-    if (found) {
-      console.log(`▶ 지면 PDF 발견: "${found.subject}" → C1 요약`);
-      resolvedPdf = found.path;
+    if (found.length > 0) {
+      console.log(`▶ 지면 PDF ${found.length}건 발견 → C1 요약`);
+      pdfList = found.map((f) => f.path);
     } else {
       console.warn('⚠️ 최근 지면 PDF 메일을 못 찾음 → RSS(경로 B)로 대체');
     }
   }
 
-  if (resolvedPdf) {
-    // 경로 C1: 지면 PDF 요약
-    if (!existsSync(resolvedPdf)) throw new Error(`PDF 를 찾을 수 없습니다: ${resolvedPdf}`);
-    const text = await extractPdfText(resolvedPdf);
-    if (!text.trim()) throw new Error('PDF 에서 텍스트를 추출하지 못했습니다(스캔본일 수 있음).');
-    console.log('▶ Claude 요약 생성 중(지면)…');
-    const brief = await summarize(text.slice(0, 120000), { apiKey, model, source: 'pdf' });
+  if (pdfList.length > 0) {
+    // 경로 C1: 지면 PDF(들) 텍스트 추출 → 합쳐서 요약
+    const parts = [];
+    for (const p of pdfList) {
+      if (!existsSync(p)) throw new Error(`PDF 를 찾을 수 없습니다: ${p}`);
+      const text = await extractPdfText(p);
+      if (text.trim()) parts.push(text);
+    }
+    if (parts.length === 0) throw new Error('PDF 에서 텍스트를 추출하지 못했습니다(스캔본일 수 있음).');
+    console.log(`▶ Claude 요약 생성 중(지면 ${parts.length}건)…`);
+    const brief = await summarize(parts.join('\n\n===== 다음 지면 =====\n\n').slice(0, 160000), {
+      apiKey,
+      model,
+      source: 'pdf',
+    });
     console.log('▶ 요약 완료');
     return { brief, errors: [] };
   }
