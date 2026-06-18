@@ -18,7 +18,10 @@ export async function sendEmail({ subject, html, text }) {
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: { user, pass },
+    auth: { user, pass: pass.replace(/\s+/g, '') }, // 앱 비밀번호 공백 제거
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
   });
 
   const info = await transporter.sendMail({

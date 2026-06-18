@@ -43,10 +43,20 @@ const isFromToday = (item, now = new Date()) => {
  * @param {{feeds: Array<{category:string,name:string,url:string,limit?:number}>}} config
  * @param {{todayOnly?: boolean}} options
  */
+// parser 의 timeout 만으로 끊기지 않는 hang 을 방지하는 하드 타임아웃
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`timeout ${ms}ms: ${label}`)), ms)
+    ),
+  ]);
+
 export async function fetchFeeds(config, { todayOnly = true } = {}) {
   const results = await Promise.allSettled(
     config.feeds.map(async (feed) => {
-      const parsed = await parser.parseURL(feed.url);
+      console.log(`  · 수집: ${feed.name} (${feed.url})`);
+      const parsed = await withTimeout(parser.parseURL(feed.url), 25000, feed.name);
       let items = (parsed.items || []).map((it) => ({
         title: (it.title || '').trim(),
         link: it.link,

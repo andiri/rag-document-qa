@@ -70,15 +70,19 @@ async function buildBrief() {
   const config = JSON.parse(
     await readFile(path.join(__dirname, 'feeds.config.json'), 'utf-8')
   );
+  console.log('▶ RSS 수집 시작…');
   const { categories, errors } = await fetchFeeds(config, { todayOnly: true });
   const totalItems = categories.reduce((n, c) => n + c.items.length, 0);
+  console.log(`▶ 수집 완료: ${totalItems}건 (실패 피드 ${errors.length}개)`);
   if (totalItems === 0) {
     throw new Error(
       '수집된 기사가 0건입니다. feeds.config.json 의 URL 을 확인하세요(피드 주소 변경 가능).'
     );
   }
   const promptText = feedsToPromptText({ categories });
+  console.log('▶ OpenAI 요약 생성 중…');
   const brief = await summarize(promptText, { apiKey, model, source: 'rss' });
+  console.log('▶ 요약 완료');
   return { brief, errors };
 }
 
@@ -120,12 +124,18 @@ async function main() {
   if (!noWrite) console.log(`✅ JSON 기록: public/briefs/latest.json, ${todayKST()}.json`);
 
   if (!noEmail) {
+    console.log('▶ 이메일 발송 중…');
     const subject = `📰 오늘의 한경 — ${brief.headline || todayKST()}`;
-    const result = await sendEmail({
-      subject,
-      html: renderEmailHtml(brief),
-      text: renderMarkdown(brief),
-    });
+    const result = await Promise.race([
+      sendEmail({
+        subject,
+        html: renderEmailHtml(brief),
+        text: renderMarkdown(brief),
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('이메일 발송 타임아웃(40s)')), 40000)
+      ),
+    ]);
     console.log(`✅ 메일 발송: ${result.accepted?.join(', ')}`);
   } else {
     console.log('✉️  메일 발송 생략(--no-email/--dry-run)');
