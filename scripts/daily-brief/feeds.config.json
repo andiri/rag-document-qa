@@ -4,11 +4,15 @@
     "한경 RSS 안내 페이지: https://www.hankyung.com/feed",
     "URL slug 은 한경 사이트 개편에 따라 바뀔 수 있습니다. 동작하지 않는 피드가 있으면",
     "https://www.hankyung.com/feed 에서 정확한 주소를 확인해 아래 url 만 교체하세요.",
-    "GitHub Actions 러너에서는 hankyung.com 접근이 가능합니다(현재 개발 컨테이너는 egress 차단)."
+    "GitHub Actions 러너에서는 hankyung.com 접근이 가능합니다(현재 개발 컨테이너는 egress 차단).",
+    "ETF 피드: 한경 글로벌마켓(글로벌 ETF 트렌드 포함) 섹션 기준. 슬러그가 다르면 러너 로그의",
+    "'수집: ETF …' 실패 메시지를 보고 https://www.hankyung.com/feed 에서 확인해 url 만 교체하세요.",
+    "피드가 실패/0건이어도 summarize.js 가 다른 분야 기사에서 ETF 섹션을 합성하므로 브리핑은 유지됩니다."
   ],
   "feeds": [
     { "category": "종합",   "name": "전체 주요뉴스", "url": "https://www.hankyung.com/feed/all-news", "limit": 12 },
     { "category": "증시",   "name": "증권/금융",     "url": "https://www.hankyung.com/feed/finance",  "limit": 8 },
+    { "category": "ETF",    "name": "ETF/글로벌마켓", "url": "https://www.hankyung.com/feed/globalmarket", "limit": 6 },
     { "category": "부동산", "name": "부동산",         "url": "https://www.hankyung.com/feed/realestate", "limit": 6 },
     { "category": "산업",   "name": "산업/IT",       "url": "https://www.hankyung.com/feed/industry", "limit": 8 },
     { "category": "정책",   "name": "경제정책/정치", "url": "https://www.hankyung.com/feed/economy",  "limit": 8 }
