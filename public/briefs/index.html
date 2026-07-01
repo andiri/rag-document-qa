@@ -51,7 +51,11 @@
             (it) => `<li><b>${esc(it.title)}</b>${it.insight ? ` <span class="insight">— ${esc(it.insight)}</span>` : ''}</li>`
           ).join('');
           const summary = s.summary ? `<p class="insight" style="margin:4px 0 6px;">${esc(s.summary)}</p>` : '';
-          return `<h2>${esc(s.category)}</h2>${summary}<ul>${items}</ul>`;
+          const isEtf = s.category === 'ETF';
+          const h2 = isEtf
+            ? `<h2 style="color:#2563eb;border-left-color:#2563eb;">💠 ${esc(s.category)}</h2>`
+            : `<h2>${esc(s.category)}</h2>`;
+          return `${h2}${summary}<ul>${items}</ul>`;
         }).join('');
         return `
           <div class="date">${esc(dateLabel(b.meta?.generatedAt || Date.now()))}</div>

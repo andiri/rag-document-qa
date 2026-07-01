@@ -50,9 +50,10 @@ export function renderEmailHtml(brief) {
       const summary = s.summary
         ? `<p style="margin:4px 0 6px;color:#444;font-size:14px;">${esc(s.summary)}</p>`
         : '';
-      return `<h3 style="margin:18px 0 6px;color:#0b5;border-left:4px solid #0b5;padding-left:8px;">${esc(
-        s.category
-      )}</h3>${summary}<ul style="margin:0;padding-left:20px;">${items}</ul>`;
+      const isEtf = s.category === 'ETF';
+      const accent = isEtf ? '#2563eb' : '#0b5';
+      const label = isEtf ? `💠 ${esc(s.category)}` : esc(s.category);
+      return `<h3 style="margin:18px 0 6px;color:${accent};border-left:4px solid ${accent};padding-left:8px;">${label}</h3>${summary}<ul style="margin:0;padding-left:20px;">${items}</ul>`;
     })
     .join('');
 
