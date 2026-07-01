@@ -26,12 +26,4 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
-  {
-    // Node 환경에서 도는 한경 브리핑 스크립트
-    files: ['scripts/**/*.js'],
-    languageOptions: {
-      globals: globals.node,
-      sourceType: 'module',
-    },
-  },
 ])
